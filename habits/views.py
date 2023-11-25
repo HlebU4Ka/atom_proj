@@ -1,40 +1,47 @@
-from django.views.generic.list import ListView
-from django.views.generic.detail import DetailView
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from .models import Habit
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
+from rest_framework import generics, permissions
+from rest_framework.pagination import PageNumberPagination
+from .models import Habit, Place
+from settings_app.serializers import HabitSerializer, PublicHabitSerializer, PlaceSerializer
+from settings_app.permissions import IsOwnerOrReadOnly, IsHabitOwner
 
 
-class HabitListView(LoginRequiredMixin, ListView):
-    model = Habit
-    template_name = 'habits/habit_list.html'
-    context_object_name = 'habits'
+class HabitList(generics.ListCreateAPIView):
+    queryset = Habit.objects.all()
+    serializer_class = HabitSerializer
+    pagination_class = PageNumberPagination
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
-class HabitDetailView(LoginRequiredMixin, DetailView):
-    model = Habit
-    template_name = 'habits/habit_detail.html'
-    context_object_name = 'habit'
+class HabitCreate(generics.CreateAPIView):
+    queryset = Habit.objects.all()
+    serializer_class = HabitSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
-class HabitCreateView(LoginRequiredMixin, CreateView):
-    model = Habit
-    template_name = 'habits/habit_form.html'
-    fields = ['place', 'time', 'action', 'is_rewarding_habit', 'related_habit', 'frequency', 'reward', 'time_required',
-              'is_public']
-    success_url = reverse_lazy('habit-list')
+class HabitUpdate(generics.RetrieveUpdateAPIView):
+    queryset = Habit.objects.all()
+    serializer_class = HabitSerializer
+    permission_classes = [permissions.IsAuthenticated, IsHabitOwner, IsOwnerOrReadOnly]
 
 
-class HabitUpdateView(LoginRequiredMixin, UpdateView):
-    model = Habit
-    template_name = 'habits/habit_form.html'
-    fields = ['place', 'time', 'action', 'is_rewarding_habit', 'related_habit', 'frequency', 'reward', 'time_required',
-              'is_public']
-    success_url = reverse_lazy('habit-list')
+class HabitDelete(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Habit.objects.all()
+    serializer_class = HabitSerializer
+    permission_classes = [permissions.IsAuthenticated, IsHabitOwner, IsOwnerOrReadOnly]
 
 
-class HabitDeleteView(LoginRequiredMixin, DeleteView):
-    model = Habit
-    template_name = 'habits/habit_confirm_delete.html'
-    success_url = reverse_lazy('habit-list')
+class PublicHabitList(generics.ListAPIView):
+    queryset = Habit.objects.filter(is_public=True)
+    serializer_class = PublicHabitSerializer
+    pagination_class = PageNumberPagination
+
+
+class PlaceCreate(generics.CreateAPIView):
+    queryset = Place.objects.all()
+    serializer_class = PlaceSerializer

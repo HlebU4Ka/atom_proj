@@ -2,6 +2,8 @@ from django.db import models
 from settings_app import settings
 from django.core.exceptions import ValidationError
 
+from settings_app.validators import validate_related_habit, validate_time_required
+
 
 # Create your models here.
 
@@ -38,10 +40,10 @@ class Habit(models.Model):
     time = models.TimeField()
     action = models.CharField(max_length=200)
     is_rewarding_habit = models.BooleanField(default=False)
-    related_habit = models.ForeignKey('self', on_delete=models.SET_NULL, null=True)
+    related_habit = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, validators=[validate_related_habit])
+    time_required = models.PositiveIntegerField(validators=[validate_time_required])
     frequency = models.PositiveIntegerField(default=1)
     reward = models.CharField(max_length=200)
-    time_required = models.PositiveIntegerField()
     is_public = models.BooleanField(default=False)
     status = models.CharField(max_length=100)
 
@@ -53,23 +55,23 @@ class Habit(models.Model):
     def clean(self):
         # Валидация связанной с привычкой привычки
         if self.related_habit and self.related_habit.is_rewarding_habit:
-            raise ValidationError("Связанная с этой привычка не может быть полезной")
-            # Валидация времени, требуемого для выполнения привычки
+            raise ValidationError("Связанная с этой привычкой не может быть полезной", code='invalid_related_habit')
+        # Валидация времени, требуемого для выполнения привычки
         if self.time_required > 120:
-            raise ValidationError("Требуемое время не может превышать 120 секунд")
-
-            # Валидация частоты выполнения привычки
+            raise ValidationError("Требуемое время не может превышать 120 секунд", code='invalid_time_required')
+        # Валидация частоты выполнения привычки
         if self.frequency < 7:
-            raise ValidationError("Периодичность применения привычки не может быть менее 7 дней.")
-
-            # Валидация вознаграждающей привычки
+            raise ValidationError("Периодичность применения привычки не может быть менее 7 дней.",
+                                  code='invalid_frequency')
+        # Валидация вознаграждающей привычки
         if self.is_rewarding_habit and (self.reward or self.related_habit):
             raise ValidationError(
-                "Вознаграждающая привычка не может иметь вознаграждения или связанной с ней привычки.")
-
-            # Валидация общественной привычки
+                "Вознаграждающая привычка не может иметь вознаграждения или связанной с ней привычки.",
+                code='invalid_rewarding_habit')
+        # Валидация общественной привычки
         if self.is_public and (self.is_rewarding_habit or self.related_habit):
-            raise ValidationError("Общественная привычка не может быть полезной или иметь связанную с ней привычку.")
+            raise ValidationError("Общественная привычка не может быть полезной или иметь связанную с ней привычку.",
+                                  code='invalid_public_habit')
 
     def __unicode__(self):
         return self.action

@@ -1,11 +1,12 @@
+import json
+
 from django.db import models
 from settings_app import settings
 from django.core.exceptions import ValidationError
-
+from django_celery_beat.models import PeriodicTask, IntervalSchedule
 from settings_app.validators import validate_related_habit, validate_time_required
+from datetime import datetime, timedelta
 
-
-# Create your models here.
 
 class Place(models.Model):
     name = models.CharField(max_length=100)
@@ -46,11 +47,28 @@ class Habit(models.Model):
     reward = models.CharField(max_length=200)
     is_public = models.BooleanField(default=False)
     status = models.CharField(max_length=100)
+    telegram_chat_id = models.CharField(max_length=255, blank=True)
 
     def save(self, *args, **kwargs):
         # Выполняем валидацию перед сохранением привычки
         self.full_clean()
         super(Habit, self).save(*args, **kwargs)
+
+        schedule,  = IntervalSchedule.objects.get_or_create(
+            every=self.frequency,
+            period=IntervalSchedule.DAYS,
+        )
+
+        task = PeriodicTask.objects.create(
+            interval=schedule,
+            name=f'Send Habit Notification - {self.id}',
+            task='settings_app.tasks.send_habit_notification',
+            args=json.dumps([self.id]),
+        )
+
+        # Запланируйте задачу в нужное время
+        task.start_time = self.calculate_next_notification_time()  # Ваш метод расчета времени
+        task.save()
 
     def clean(self):
         # Валидация связанной с привычкой привычки
@@ -75,3 +93,27 @@ class Habit(models.Model):
 
     def __unicode__(self):
         return self.action
+
+
+def calculate_next_notification_time(habit):
+    # Получаем текущее время
+    current_time = datetime.now().time()
+
+    # Переводим время привычки в секунды для удобства сравнения
+    habit_time_seconds = habit.time.hour * 3600 + habit.time.minute * 60 + habit.time.second
+
+    # Переводим текущее время в секунды
+    current_time_seconds = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+
+    # Рассчитываем время до следующего выполнения привычки
+    time_until_next_execution = habit_time_seconds - current_time_seconds
+
+    # Если время уже прошло, добавляем 24 часа
+    if time_until_next_execution <= 0:
+        time_until_next_execution += 24 * 3600
+
+    # Рассчитываем следующее время уведомления
+    next_notification_time = datetime.combine(datetime.now(), current_time) + timedelta(
+        seconds=time_until_next_execution)
+
+    return next_notification_time

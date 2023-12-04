@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     'django_celery_beat',
+    'rest_framework_simplejwt',
 
     #App
     'habits',

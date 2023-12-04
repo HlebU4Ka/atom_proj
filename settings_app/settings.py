@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'django_celery_beat',
     'rest_framework_simplejwt',
+    'django_extensions',
 
     #App
     'habits',

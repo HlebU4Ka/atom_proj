@@ -1,25 +1,33 @@
-"""
-URL configuration for settings_app project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, re_path, include
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
 
+# Определение информации для документации API
+api_info = openapi.Info(
+    title="API",
+    default_version='v1',
+    description="Описание",
+    terms_of_service="https://www.settings_app.com/terms/",
+    contact=openapi.Contact(email="contact@yourapp.com"),
+    license=openapi.License(name="Ваша лицензия"),
+)
+
+# Настройка для генерации схемы API
+schema_view = get_schema_view(
+    api_info,
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
+
+# Определение основных URL-маршрутов
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('admin/doc/', include('django.contrib.admindocs.urls')),
     path('api/users/', include('users.urls')),
     path('api/habits/', include('habits.urls')),
+
+    # Главная страница Swagger UI для интерактивной документации
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]

@@ -148,3 +148,9 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 300.0,
     },
 }
+
+
+REST_FRAMEWORK = {
+
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+}

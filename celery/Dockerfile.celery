@@ -1,10 +1,19 @@
 FROM python:3.8
 
+# Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /app
 
+# Копируем файл requirements.txt в рабочую директорию
 COPY celery/requirements.txt /app/
+
+# Устанавливаем зависимости проекта
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Копируем весь код проекта в рабочую директорию контейнера
 COPY . /app/
 
-CMD ["celery", "-A", "settings_app", "worker", "--loglevel=info"]
+# Устанавливаем переменные окружения
+ENV CELERY_BROKER=${CELERY_BROKER}
+
+# Команда для запуска Celery
+CMD ["celery", "-A", "celery_worker", "worker", "--loglevel=info"]

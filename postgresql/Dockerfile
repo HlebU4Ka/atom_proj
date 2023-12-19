@@ -1,9 +1,9 @@
 FROM postgres:latest
 
 # Настройки базы данных
-ENV POSTGRES_DB=atom_bot_project
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=0052533
+ENV POSTGRES_DB=${DB_PASSWORD}
+ENV POSTGRES_USER=${POSTGRES_USER_NAME}
+ENV POSTGRES_PASSWORD=${DB_PASSWORD}
 
 # Копируем инициализационные SQL-скрипты в директорию, которая будет автоматически выполнена при запуске контейнера
 COPY init.sql /docker-entrypoint-initdb.d/
